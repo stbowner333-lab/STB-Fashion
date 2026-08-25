@@ -666,6 +666,159 @@
             }
         }
 
+        /* --- Robust Chart OCR Helpers --- */
+
+        function normalizeOCRText(text) {
+            return (text || '')
+                .toUpperCase()
+                .replace(/[|]/g, 'I')
+                .replace(/[—–−]/g, '-')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function detectQuotexPair(text) {
+            const t = normalizeOCRText(text);
+            const compactText = t
+                .replace(/[\/|I:]/g, ' ')
+                .replace(/[^A-Z0-9()\s-]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            for (const rawPair of otcPairList) {
+                const base = rawPair.replace(/-OTC$/i, '').toUpperCase();
+                const a = base.slice(0, 3);
+                const b = base.slice(3, 6);
+                const forms = [
+                    new RegExp(`\\b${a}\\s*[/|I-]\\s*${b}\\b`, 'i'),
+                    new RegExp(`\\b${a}\\s+${b}\\b`, 'i'),
+                    new RegExp(`\\b${a}${b}\\b`, 'i')
+                ];
+                if (forms.some(re => re.test(t) || re.test(compactText))) {
+                    return `${a}/${b} (OTC)`;
+                }
+            }
+            return null;
+        }
+
+        function scorePairInText(text) {
+            const t = normalizeOCRText(text);
+            let best = null;
+            let bestScore = 0;
+
+            for (const rawPair of otcPairList) {
+                const base = rawPair.replace(/-OTC$/i, '').toUpperCase();
+                const a = base.slice(0, 3);
+                const b = base.slice(3, 6);
+                let score = 0;
+                if (new RegExp(`\\b${a}\\s*[/|I-]\\s*${b}\\b`, 'i').test(t)) score = 100;
+                else if (new RegExp(`\\b${a}\\s+${b}\\b`, 'i').test(t)) score = 95;
+                else if (new RegExp(`\\b${a}${b}\\b`, 'i').test(t)) score = 90;
+                if (/\bOTC\b/i.test(t) && score) score += 10;
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = `${a}/${b} (OTC)`;
+                }
+            }
+            return { pair: best, score: bestScore };
+        }
+
+        function makeOCRCanvases(dataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const maxWidth = 2400;
+                    const scale = Math.min(1.8, maxWidth / img.naturalWidth);
+                    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+                    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+
+                    const base = document.createElement('canvas');
+                    base.width = w;
+                    base.height = h;
+                    const ctx = base.getContext('2d', { willReadFrequently: true });
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    const crops = [
+                        [Math.round(w * 0.875), Math.round(h * 0.055), Math.round(w * 0.125), Math.round(h * 0.075)],
+                        [Math.round(w * 0.85), Math.round(h * 0.035), Math.round(w * 0.15), Math.round(h * 0.16)],
+                        [Math.round(w * 0.05), Math.round(h * 0.045), Math.round(w * 0.80), Math.round(h * 0.11)],
+                        [Math.round(w * 0.55), 0, Math.round(w * 0.45), Math.round(h * 0.22)],
+                        [0, 0, w, Math.round(h * 0.40)]
+                    ];
+
+                    const ordered = [];
+                    const priorityCrops = [];
+                    for (const [x, y, cw, ch] of crops) {
+                        const c = document.createElement('canvas');
+                        c.width = Math.max(1, cw);
+                        c.height = Math.max(1, ch);
+                        c.getContext('2d').drawImage(base, x, y, cw, ch, 0, 0, cw, ch);
+                        priorityCrops.push(c);
+                        ordered.push(c);
+                    }
+
+                    ordered.push(base);
+
+                    const source = priorityCrops[0];
+                    for (const mode of ['normal', 'contrast']) {
+                        const c = document.createElement('canvas');
+                        c.width = source.width * 6;
+                        c.height = source.height * 6;
+                        const cctx = c.getContext('2d', { willReadFrequently: true });
+                        cctx.imageSmoothingEnabled = true;
+                        cctx.drawImage(source, 0, 0, c.width, c.height);
+                        if (mode === 'contrast') {
+                            const imgData = cctx.getImageData(0, 0, c.width, c.height);
+                            for (let i = 0; i < imgData.data.length; i += 4) {
+                                const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
+                                let v = 0.299*r + 0.587*g + 0.114*b;
+                                v = Math.max(0, Math.min(255, (v - 128) * 2.2 + 128));
+                                imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = v;
+                            }
+                            cctx.putImageData(imgData, 0, 0);
+                        }
+                        ordered.unshift(c);
+                    }
+
+                    resolve(ordered);
+                };
+                img.onerror = reject;
+                img.src = dataUrl;
+            });
+        }
+
+        async function ocrForPair(canvases) {
+            const worker = await Tesseract.createWorker('eng');
+            let allText = '';
+            let best = null;
+            try {
+                await worker.setParameters({
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/()|- ' 
+                });
+
+                for (let i = 0; i < canvases.length; i++) {
+                    await worker.setParameters({
+                        tessedit_pageseg_mode: i < 2 ? Tesseract.PSM.SINGLE_LINE : Tesseract.PSM.SPARSE_TEXT
+                    });
+                    const ret = await worker.recognize(canvases[i]);
+                    const text = ret?.data?.text || '';
+                    allText += '\n' + text;
+                    const result = scorePairInText(text);
+                    if (result.pair) {
+                        const priorityBonus = i < 2 ? 20 : (i < 4 ? 10 : 0);
+                        const totalScore = result.score + priorityBonus;
+                        if (!best || totalScore > best.score) best = { pair: result.pair, score: totalScore };
+                    }
+                    if (i < 2 && result.score >= 100) {
+                        return { pair: result.pair, text: allText };
+                    }
+                }
+                return { pair: best ? best.pair : null, text: allText };
+            } finally {
+                await worker.terminate();
+            }
+        }
+
         async function analyzeChart() {
             const scanner = document.getElementById('scanner');
             const btn = document.getElementById('analyze-btn');
@@ -679,18 +832,16 @@
             errorBox.style.display = 'none';
 
             try {
-                const worker = await Tesseract.createWorker('eng');
-                const ret = await worker.recognize(uploadedImageSrc);
-                await worker.terminate();
+                if (!uploadedImageSrc) {
+                    throw new Error('No image selected');
+                }
 
-                const extractedText = ret.data.text.toUpperCase();
-                const pairRegex = /([A-Z]{3}\/[A-Z]{3}(\s*\(OTC\))?|CRYPTO\s*IDX)/i;
-                const match = extractedText.match(pairRegex);
+                const canvases = await makeOCRCanvases(uploadedImageSrc);
+                const { pair: detectedPair } = await ocrForPair(canvases);
 
                 scanner.style.display = 'none';
 
-                if (match) {
-                    const detectedPair = match[0].replace(/\s+/g, ' ');
+                if (detectedPair) {
                     const randomTime = times[Math.floor(Math.random() * times.length)];
                     const isCall = Math.random() > 0.5;
 
@@ -714,7 +865,7 @@
                 startCooldown(btn, "Analyze Chart Now", 45);
 
             } catch (err) {
-                console.error(err);
+                console.error('Chart OCR error:', err);
                 scanner.style.display = 'none';
                 errorBox.style.display = 'block';
                 startCooldown(btn, "Analyze Chart Now", 45);
@@ -782,4 +933,4 @@
         }
     </script>
 </body>
-					</html>
+</html>
