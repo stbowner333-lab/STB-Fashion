@@ -11,6 +11,10 @@
     <!-- Real OCR Engine Script -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
         :root {
             --gold: #ffd700;
@@ -23,6 +27,9 @@
             --neon-pink: #ff007f;
             --neon-green: #00f2fe;
             --neon-blue: #00d2ff;
+            --neon-purple: #9d4edd;
+            --arcade-orange: #ff9100;
+            --time-cyan: #00e5ff;
         }
 
         * {
@@ -74,7 +81,7 @@
             100% { left: 100%; }
         }
 
-        /* --- Login Box Styles --- */
+        /* Login Box Styles */
         #login-screen {
             display: block;
         }
@@ -106,9 +113,13 @@
             font-size: 12px;
             margin-top: 10px;
             display: none;
+            padding: 8px;
+            background: rgba(255, 82, 82, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 82, 82, 0.3);
         }
 
-        /* --- Header & Buttons --- */
+        /* Header & Buttons */
         .header h1 {
             font-size: 24px;
             font-weight: 700;
@@ -126,7 +137,7 @@
             margin-bottom: 25px;
         }
 
-        .btn-main, .btn-future, .btn-live, .btn-login {
+        .btn-main, .btn-future, .btn-live, .btn-login, .btn-live-future, .btn-battle, .btn-arcade, .btn-history, .btn-logout {
             width: 100%;
             margin-top: 15px;
             padding: 14px;
@@ -169,6 +180,18 @@
             box-shadow: 0 6px 20px rgba(255, 0, 127, 0.6);
         }
 
+        .btn-live-future {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 176, 155, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-live-future:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 176, 155, 0.6);
+        }
+
         .btn-live {
             background: linear-gradient(135deg, #00d2ff, #0088cc);
             color: #ffffff;
@@ -179,6 +202,60 @@
         .btn-live:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 210, 255, 0.6);
+        }
+
+        .btn-battle {
+            background: linear-gradient(135deg, #7b2cbf, #ff007f);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(123, 44, 191, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: pulse-battle 2s infinite ease-in-out;
+        }
+
+        .btn-battle:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 0, 127, 0.7);
+        }
+
+        .btn-arcade {
+            background: linear-gradient(135deg, #ff9100, #ff3d00);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(255, 145, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-arcade:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 145, 0, 0.7);
+        }
+
+        .btn-history {
+            background: linear-gradient(135deg, #00e5ff, #0072ff);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-history:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 229, 255, 0.7);
+        }
+
+        .btn-logout {
+            background: rgba(255, 23, 68, 0.2);
+            color: #ff1744;
+            border: 1px solid #ff1744;
+        }
+
+        .btn-logout:hover {
+            background: #ff1744;
+            color: #fff;
+        }
+
+        @keyframes pulse-battle {
+            0% { box-shadow: 0 0 10px rgba(123, 44, 191, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(255, 0, 127, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(123, 44, 191, 0.5); }
         }
 
         .btn-telegram {
@@ -205,7 +282,7 @@
             box-shadow: 0 6px 20px rgba(0, 136, 204, 0.6);
         }
 
-        /* --- Modal Generic Styles --- */
+        /* Modal Generic Styles */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -224,7 +301,7 @@
             border-radius: 20px;
             padding: 25px;
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             text-align: center;
             box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
             position: relative;
@@ -394,7 +471,6 @@
             display: none;
         }
 
-        /* Live Signal Card Style */
         .live-signal-card {
             background: #080c10;
             border: 1px solid var(--neon-blue);
@@ -422,6 +498,180 @@
             cursor: pointer;
             box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
         }
+
+        /* BATTLE ARENA STYLES */
+        .battle-scoreboard {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 0, 127, 0.2);
+        }
+
+        .player-box {
+            text-align: center;
+        }
+
+        .player-title {
+            font-size: 11px;
+            color: #a0a6b5;
+            text-transform: uppercase;
+        }
+
+        .player-pts {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--neon-green);
+        }
+
+        .vs-badge {
+            font-size: 14px;
+            font-weight: 900;
+            color: var(--neon-pink);
+            background: rgba(255, 0, 127, 0.15);
+            padding: 5px 10px;
+            border-radius: 50%;
+            border: 1px solid var(--neon-pink);
+        }
+
+        .battle-chart-box {
+            background: #06090e;
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            margin-bottom: 15px;
+            height: 180px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #candleCanvas, #arcadeCanvas, #historyCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .candle-countdown-overlay {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            font-family: monospace;
+            display: none;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .battle-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-b-call {
+            background: var(--call-color);
+            color: #000;
+            font-weight: 700;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
+        }
+
+        .btn-b-put {
+            background: var(--put-color);
+            color: #fff;
+            font-weight: 700;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 23, 68, 0.4);
+        }
+
+        .battle-timer {
+            font-size: 13px;
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* ARCADE STYLES */
+        .arcade-tab-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .arcade-tab {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 145, 0, 0.3);
+            border-radius: 8px;
+            color: #aaa;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .arcade-tab.active {
+            background: rgba(255, 145, 0, 0.2);
+            color: var(--arcade-orange);
+            border-color: var(--arcade-orange);
+        }
+
+        .quiz-opt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-quiz-opt {
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-quiz-opt:hover {
+            border-color: var(--arcade-orange);
+            background: rgba(255, 145, 0, 0.1);
+        }
+
+        /* HISTORICAL BACKTEST STYLES */
+        .history-info-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #a0a6b5;
+            margin-bottom: 10px;
+            background: rgba(0, 229, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+
+        .history-stat-val {
+            color: var(--time-cyan);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -437,10 +687,8 @@
             <input type="text" id="username" class="login-input" placeholder="User Name">
             <input type="password" id="password" class="login-input" placeholder="Password">
             
-            <button class="btn-login" onclick="handleLogin()">Login</button>
-            <div id="login-error" class="login-error">
-                <i class="fa-solid fa-triangle-exclamation"></i> ইউজার নাম অথবা পাসওয়ার্ড ভুল হয়েছে!
-            </div>
+            <button class="btn-login" id="loginBtn" onclick="handleLogin()">Login System</button>
+            <div id="login-error" class="login-error"></div>
         </div>
 
         <!-- MAIN DASHBOARD SCREEN -->
@@ -465,10 +713,147 @@
                 <i class="fa-solid fa-bolt"></i> VIP Future Signal
             </button>
 
+            <!-- LIVE FUTURE SIGNAL Launcher -->
+            <button class="btn-live-future" onclick="openLiveFutureModal()">
+                <i class="fa-solid fa-chart-pie"></i> LIVE FUTURE SIGNAL
+            </button>
+
+            <!-- TRADING BATTLE ARENA Launcher -->
+            <button class="btn-battle" onclick="openBattleModal()">
+                <i class="fa-solid fa-gamepad"></i> TRADING BATTLE ARENA (1v1)
+            </button>
+
+            <!-- TRADING TRAINING ARCADE Launcher -->
+            <button class="btn-arcade" onclick="openArcadeModal()">
+                <i class="fa-solid fa-graduation-cap"></i> TRADING TRAINING ARCADE
+            </button>
+
+            <!-- HISTORICAL BACKTEST Launcher -->
+            <button class="btn-history" onclick="openHistoryModal()">
+                <i class="fa-solid fa-clock-rotate-left"></i> HISTORICAL BACKTEST
+            </button>
+
             <!-- VIP Telegram Channel Redirect Button -->
             <a href="https://t.me/shakwat33s" target="_blank" class="btn-telegram">
                 <i class="fa-brands fa-telegram"></i> Join VIP Telegram Channel
             </a>
+
+            <!-- Logout Button -->
+            <button class="btn-logout" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- HISTORICAL BACKTEST SIMULATOR Modal -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal-card">
+            <i class="fa-solid fa-xmark close-modal" onclick="closeHistoryModal()"></i>
+            <h2 class="modal-title" style="color: var(--time-cyan);"><i class="fa-solid fa-clock-rotate-left"></i> Historical Backtest</h2>
+            
+            <div class="history-info-bar">
+                <div>Date: <span id="hist-date" class="history-stat-val">2023-10-14</span></div>
+                <div>Pair: <span id="hist-pair" class="history-stat-val">EUR/USD</span></div>
+                <div>Win-Rate: <span id="hist-winrate" class="history-stat-val">0%</span></div>
+            </div>
+
+            <div class="battle-chart-box">
+                <canvas id="historyCanvas" width="380" height="160"></canvas>
+            </div>
+
+            <div class="battle-controls">
+                <button class="btn-b-call" onclick="tradeHistory('UP')">PREDICT: UP ▲</button>
+                <button class="btn-b-put" onclick="tradeHistory('DOWN')">PREDICT: DOWN ▼</button>
+            </div>
+
+            <div id="history-result-msg" style="font-size: 12px; color: #a0a6b5; margin-top: 5px;">
+                Guess next candle outcome based on historical market flow!
+            </div>
+
+            <button class="btn-gen" style="background: linear-gradient(135deg, #00e5ff, #0072ff); margin-top: 10px;" onclick="loadRandomHistoricalDataset()">
+                <i class="fa-solid fa-shuffle"></i> Travel to Random Date
+            </button>
+        </div>
+    </div>
+
+    <!-- TRADING TRAINING ARCADE Modal -->
+    <div class="modal-overlay" id="arcade-modal">
+        <div class="modal-card">
+            <i class="fa-solid fa-xmark close-modal" onclick="closeArcadeModal()"></i>
+            <h2 class="modal-title" style="color: var(--arcade-orange);"><i class="fa-solid fa-graduation-cap"></i> Training Arcade</h2>
+            
+            <div class="arcade-tab-group">
+                <button class="arcade-tab active" id="tab-quiz" onclick="switchArcadeTab('quiz')">Pattern Quiz</button>
+                <button class="arcade-tab" id="tab-backtest" onclick="switchArcadeTab('backtest')">Time Travel</button>
+            </div>
+
+            <!-- Section 1: Pattern Quiz -->
+            <div id="arcade-quiz-section">
+                <div style="font-size: 13px; color: #a0a6b5; margin-bottom: 10px;">
+                    Score: <span id="quiz-score" style="color: var(--gold); font-weight: bold;">0</span>
+                </div>
+                <div class="battle-chart-box">
+                    <canvas id="quizCanvas" width="380" height="160"></canvas>
+                </div>
+                <div id="quiz-question" style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Identify this Candlestick Pattern:</div>
+                <div class="quiz-opt-grid" id="quiz-options">
+                    <!-- Options injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Section 2: Time Travel Simulator -->
+            <div id="arcade-backtest-section" style="display: none;">
+                <div style="font-size: 12px; color: #a0a6b5; margin-bottom: 10px;">Study past chart setup & guess the NEXT candle!</div>
+                <div class="battle-chart-box">
+                    <canvas id="arcadeCanvas" width="380" height="160"></canvas>
+                </div>
+                <div class="battle-controls">
+                    <button class="btn-b-call" onclick="guessBacktest('UP')">NEXT: UP ▲</button>
+                    <button class="btn-b-put" onclick="guessBacktest('DOWN')">NEXT: DOWN ▼</button>
+                </div>
+                <div id="backtest-result" style="font-size: 12px; color: var(--gold); margin-top: 5px;">Click UP or DOWN to predict!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRADING BATTLE ARENA Modal -->
+    <div class="modal-overlay" id="battle-modal">
+        <div class="modal-card">
+            <i class="fa-solid fa-xmark close-modal" onclick="closeBattleModal()"></i>
+            <h2 class="modal-title" style="color: var(--neon-pink);"><i class="fa-solid fa-swords"></i> 1v1 Battle Arena</h2>
+            
+            <div class="battle-timer" id="battle-time-display">Time Remaining: 03:00</div>
+
+            <!-- Scoreboard -->
+            <div class="battle-scoreboard">
+                <div class="player-box">
+                    <div class="player-title">YOU (Player)</div>
+                    <div class="player-pts" id="user-score">1000</div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="player-box">
+                    <div class="player-title">STB AI Bot</div>
+                    <div class="player-pts" id="ai-score" style="color: var(--neon-blue);">1000</div>
+                </div>
+            </div>
+
+            <!-- Candlestick Canvas Box -->
+            <div class="battle-chart-box">
+                <canvas id="candleCanvas" width="380" height="160"></canvas>
+                <div class="candle-countdown-overlay" id="candle-timer">00:05</div>
+            </div>
+
+            <!-- Controls -->
+            <div class="battle-controls">
+                <button class="btn-b-call" id="btn-user-call" onclick="makePrediction('UP')">UP ▲ (+150)</button>
+                <button class="btn-b-put" id="btn-user-put" onclick="makePrediction('DOWN')">DOWN ▼ (+150)</button>
+            </div>
+
+            <div id="battle-status" style="font-size: 12px; color: #a0a6b5; margin-top: 5px;">Press Start Battle to play vs AI Bot!</div>
+
+            <button class="btn-gen" id="start-battle-btn" style="background: linear-gradient(135deg, #7b2cbf, #ff007f); margin-top: 10px;" onclick="startTradingBattle()">
+                Start 3-Min Battle
+            </button>
         </div>
     </div>
 
@@ -548,26 +933,130 @@
         </div>
     </div>
 
-    <script>
-        // --- AUTH SYSTEM ---
-        const VALID_USER = "STB OWNER";
-        const VALID_PASS = "@shakwat33s";
+    <!-- LIVE FUTURE SIGNAL Modal -->
+    <div class="modal-overlay" id="live-future-modal">
+        <div class="modal-card">
+            <i class="fa-solid fa-xmark close-modal" onclick="closeLiveFutureModal()"></i>
+            <h2 class="modal-title" style="color: #96c93d;">Live Future Signal</h2>
+            <input type="number" id="live-signal-count" class="modal-input" style="border-color: #00b09b;" placeholder="Enter number of signals (max 60)" min="1" max="60">
+            <button class="btn-gen" id="gen-live-future-btn" style="background: linear-gradient(135deg, #00b09b, #96c93d);" onclick="generateLiveFutureSignals()">Generate</button>
+            
+            <div class="signal-list-box" id="live-signal-list-box"></div>
+            
+            <button class="btn-copy-all" id="live-copy-btn" onclick="copyAllLiveFutureSignals()" style="display:none;">Copy All</button>
+        </div>
+    </div>
 
-        function handleLogin() {
+    <script>
+        // FIREBASE SETUP & DEVICE LOCK SYSTEM
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLhX-9XRPHrxkklMyNzhnSxOPz9KDreC8",
+            authDomain: "stb-owner.firebaseapp.com",
+            projectId: "stb-owner",
+            storageBucket: "stb-owner.firebasestorage.app",
+            messagingSenderId: "200202518138",
+            appId: "1:200202518138:web:db5cd31c99a1fc3efcc5c3",
+            measurementId: "G-PGWEQYQE0R"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        function getDeviceId() {
+            let dId = localStorage.getItem("stb_device_id");
+            if (!dId) {
+                dId = 'DEV-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+                localStorage.setItem("stb_device_id", dId);
+            }
+            return dId;
+        }
+
+        async function handleLogin() {
             const userIn = document.getElementById('username').value.trim();
             const passIn = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('login-error');
+            const loginBtn = document.getElementById('loginBtn');
 
-            if (userIn === VALID_USER && passIn === VALID_PASS) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('dashboard-screen').style.display = 'block';
-                errorDiv.style.display = 'none';
-            } else {
+            if (!userIn || !passIn) {
+                errorDiv.innerText = "ইউজারনেম এবং পাসওয়ার্ড পূরণ করুন!";
                 errorDiv.style.display = 'block';
+                return;
+            }
+
+            loginBtn.innerText = "Checking...";
+            loginBtn.disabled = true;
+
+            try {
+                const querySnapshot = await db.collection("users")
+                    .where("username", "==", userIn)
+                    .where("password", "==", passIn)
+                    .get();
+
+                if (querySnapshot.empty) {
+                    errorDiv.innerText = "ভুল ইউজারনেম অথবা পাসওয়ার্ড!";
+                    errorDiv.style.display = 'block';
+                    loginBtn.innerText = "Login System";
+                    loginBtn.disabled = false;
+                    return;
+                }
+
+                let userDoc = null;
+                let docId = "";
+                querySnapshot.forEach(doc => {
+                    userDoc = doc.data();
+                    docId = doc.id;
+                });
+
+                // Expire Date Check
+                const today = new Date().toISOString().split('T')[0];
+                if (userDoc.expireDate && userDoc.expireDate < today) {
+                    errorDiv.innerText = "আপনার অ্যাকাউন্টের মেয়াদ শেষ হয়ে গেছে!";
+                    errorDiv.style.display = 'block';
+                    loginBtn.innerText = "Login System";
+                    loginBtn.disabled = false;
+                    return;
+                }
+
+                // Device Lock Check
+                const currentDeviceId = getDeviceId();
+                if (!userDoc.deviceId || userDoc.deviceId === "") {
+                    await db.collection("users").doc(docId).update({ deviceId: currentDeviceId });
+                    openDashboard();
+                } else if (userDoc.deviceId === currentDeviceId) {
+                    openDashboard();
+                } else {
+                    errorDiv.innerText = "এই অ্যাকাউন্টটি অন্য ডিভাইসে লক করা আছে!";
+                    errorDiv.style.display = 'block';
+                    loginBtn.innerText = "Login System";
+                    loginBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                errorDiv.innerText = "সার্ভার কানেকশন সমস্যা! ফায়ারবেস সেটিংস চেক করুন।";
+                errorDiv.style.display = 'block';
+                loginBtn.innerText = "Login System";
+                loginBtn.disabled = false;
             }
         }
 
-        // --- DASHBOARD APP LOGIC ---
+        function openDashboard() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('dashboard-screen').style.display = 'block';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        function handleLogout() {
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('dashboard-screen').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginBtn').innerText = "Login System";
+            document.getElementById('loginBtn').disabled = false;
+        }
+
+        // DASHBOARD APP LOGIC
         let uploadedImageSrc = null;
         const times = ["1 Minute", "2 Minutes", "3 Minutes", "5 Minutes"];
         
@@ -576,7 +1065,11 @@
             "USDEGP-OTC", "USDPKR-OTC", "USDNGN-OTC", "USDARS-OTC", "NZDCHF-OTC"
         ];
 
-        /* --- Cooldown Helper Function --- */
+        const realLivePairList = [
+            "EURUSD", "EURJPY", "CADJPY", "AUDJPY", "AUDCAD", "AUDUSD", "EURGBP", "USDJPY", "GBPJPY"
+        ];
+
+        /* Cooldown Helper Function */
         function startCooldown(buttonElement, originalText, seconds = 45) {
             buttonElement.disabled = true;
             let remainingTime = seconds;
@@ -595,7 +1088,502 @@
             }, 1000);
         }
 
-        /* --- STB Live Signal Modal Control --- */
+        /* HISTORICAL BACKTEST SIMULATOR SCRIPT */
+        let historyCandles = [];
+        let historyWins = 0;
+        let historyTotalTrades = 0;
+
+        const sampleHistoricalDates = [
+            "2021-03-15", "2022-07-22", "2023-01-10", "2023-09-05", "2024-04-18", "2024-11-30"
+        ];
+
+        const winReasonsUP = [
+            "সাপোর্ট লেভেল (Support Level) থেকে স্ট্রং রিজেকশন পেয়েছে!",
+            "বুলিশ ট্রেন্ড কন্টিনিউয়েশন (Bullish Trend Continuation) কাজ করেছে।",
+            "বায়ার্স প্রেসার (Buyers Pressure) সেলারদের চেয়ে বেশি ছিল।"
+        ];
+
+        const winReasonsDOWN = [
+            "রেজিস্ট্যান্স লেভেল (Resistance Level) থেকে পারফেক্ট রিজেকশন এসেছে!",
+            "বেয়ারিশ ট্রেন্ড (Bearish Trend) বজায় ছিল।",
+            "সেলার্সদের ভারী প্রেসারের কারণে ক্যান্ডেল নিচে নেমেছে।"
+        ];
+
+        const lossReasonsUP = [
+            "সাপোর্ট ব্রেকআউট (Breakout) হয়ে গেছে, বায়ার্স হোল্ড করতে পারেনি।",
+            "রেজিস্ট্যান্স লেভেল খুব কাছাকাছি থাকায় ক্যান্ডেল নিচে নেমে গেছে।",
+            "মার্কেটে হঠাৎ বেয়ারিশ ভোলাটিলিটি বৃদ্ধি পেয়েছিল।"
+        ];
+
+        const lossReasonsDOWN = [
+            "রেজিস্ট্যান্স ব্রেকআউট (Resistance Breakout) হয়ে বায়ার্স স্ট্রং হয়ে গেছে।",
+            "নিচে শক্ত সাপোর্ট থাকায় সেলার্সরা প্রাইজ নিচে নামাতে পারেনি।",
+            "মার্কেটে হুট করে বাইং প্রেসার (Buying Pressure) চলে এসেছিল।"
+        ];
+
+        function openHistoryModal() {
+            document.getElementById('history-modal').style.display = 'flex';
+            loadRandomHistoricalDataset();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').style.display = 'none';
+        }
+
+        function loadRandomHistoricalDataset() {
+            const randomDate = sampleHistoricalDates[Math.floor(Math.random() * sampleHistoricalDates.length)];
+            const randomPair = realLivePairList[Math.floor(Math.random() * realLivePairList.length)];
+            
+            document.getElementById('hist-date').innerText = randomDate;
+            document.getElementById('hist-pair').innerText = randomPair;
+
+            historyCandles = [];
+            let price = 100 + Math.random() * 50;
+            
+            for (let i = 0; i < 9; i++) {
+                let open = price;
+                let close = open + (Math.random() - 0.49) * 7;
+                let high = Math.max(open, close) + Math.random() * 3.5;
+                let low = Math.min(open, close) - Math.random() * 3.5;
+                historyCandles.push({ open, high, low, close });
+                price = close;
+            }
+            
+            drawHistoryCandles();
+            document.getElementById('history-result-msg').innerText = "Market sequence loaded. Predict the NEXT candle!";
+        }
+
+        function drawHistoryCandles() {
+            const canvas = document.getElementById('historyCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let minP = Math.min(...historyCandles.map(c => c.low));
+            let maxP = Math.max(...historyCandles.map(c => c.high));
+            let range = (maxP - minP) || 1;
+
+            const padding = 20;
+            const candleWidth = (canvas.width - padding * 2) / 11;
+
+            historyCandles.forEach((c, index) => {
+                let x = padding + index * candleWidth + candleWidth / 2;
+                let yOpen = canvas.height - padding - ((c.open - minP) / range) * (canvas.height - padding * 2);
+                let yClose = canvas.height - padding - ((c.close - minP) / range) * (canvas.height - padding * 2);
+                let yHigh = canvas.height - padding - ((c.high - minP) / range) * (canvas.height - padding * 2);
+                let yLow = canvas.height - padding - ((c.low - minP) / range) * (canvas.height - padding * 2);
+
+                let color = c.close >= c.open ? '#00e676' : '#ff1744';
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(x, yHigh); ctx.lineTo(x, yLow); ctx.stroke();
+
+                ctx.fillStyle = color;
+                let bodyY = Math.min(yOpen, yClose);
+                let bodyH = Math.max(Math.abs(yClose - yOpen), 2);
+                ctx.fillRect(x - candleWidth * 0.35, bodyY, candleWidth * 0.7, bodyH);
+            });
+        }
+
+        function tradeHistory(userPrediction) {
+            let last = historyCandles[historyCandles.length - 1];
+            let open = last.close;
+            let close = open + (Math.random() - 0.49) * 8;
+            let high = Math.max(open, close) + Math.random() * 4;
+            let low = Math.min(open, close) - Math.random() * 4;
+            
+            let isGreen = close >= open;
+            let actualResult = isGreen ? 'UP' : 'DOWN';
+
+            historyCandles.push({ open, high, low, close });
+            if (historyCandles.length > 10) historyCandles.shift();
+            drawHistoryCandles();
+
+            historyTotalTrades++;
+
+            let resultMsg = "";
+            let reasonMsg = "";
+
+            if (userPrediction === actualResult) {
+                historyWins++;
+                reasonMsg = actualResult === 'UP' 
+                    ? winReasonsUP[Math.floor(Math.random() * winReasonsUP.length)] 
+                    : winReasonsDOWN[Math.floor(Math.random() * winReasonsDOWN.length)];
+
+                resultMsg = `<b style="color:#00e676; font-size: 14px;">🎉 WIN! (${actualResult})</b><br><span style="font-size:11px; color:#d1d5db; display:inline-block; margin-top:3px;"><b>লজিক:</b> ${reasonMsg}</span>`;
+            } else {
+                reasonMsg = actualResult === 'UP' 
+                    ? lossReasonsUP[Math.floor(Math.random() * lossReasonsUP.length)] 
+                    : lossReasonsDOWN[Math.floor(Math.random() * lossReasonsDOWN.length)];
+
+                resultMsg = `<b style="color:#ff1744; font-size: 14px;">❌ LOSS! (${actualResult})</b><br><span style="font-size:11px; color:#d1d5db; display:inline-block; margin-top:3px;"><b>লজিক:</b> ${reasonMsg}</span>`;
+            }
+
+            const msgElement = document.getElementById('history-result-msg');
+            msgElement.innerHTML = resultMsg;
+
+            let winRate = Math.round((historyWins / historyTotalTrades) * 100);
+            document.getElementById('hist-winrate').innerText = `${winRate}%`;
+        }
+
+        /* CANDLESTICK BATTLE ARENA LOGIC */
+        let candles = [];
+        let userPoints = 1000;
+        let aiPoints = 1000;
+        let battleTimerInterval = null;
+        let candleCycleInterval = null;
+        let isBattleActive = false;
+        let userCurrentPrediction = null;
+        let aiCurrentPrediction = null;
+
+        const CANDLE_DURATION = 5; 
+        let secondsRemaining = CANDLE_DURATION;
+
+        function openBattleModal() {
+            document.getElementById('battle-modal').style.display = 'flex';
+            generateInitialCandles();
+            drawCandlesticks();
+        }
+
+        function closeBattleModal() {
+            document.getElementById('battle-modal').style.display = 'none';
+            stopBattle();
+        }
+
+        function generateInitialCandles() {
+            candles = [];
+            let currentPrice = 100;
+            for (let i = 0; i < 12; i++) {
+                let open = currentPrice;
+                let close = open + (Math.random() - 0.48) * 6;
+                let high = Math.max(open, close) + Math.random() * 3;
+                let low = Math.min(open, close) - Math.random() * 3;
+                candles.push({ open, high, low, close });
+                currentPrice = close;
+            }
+        }
+
+        function drawCandlesticks() {
+            const canvas = document.getElementById('candleCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let minP = Math.min(...candles.map(c => c.low));
+            let maxP = Math.max(...candles.map(c => c.high));
+            let range = (maxP - minP) || 1;
+
+            const padding = 15;
+            const candleWidth = (canvas.width - padding * 2) / candles.length;
+
+            candles.forEach((c, index) => {
+                let x = padding + index * candleWidth + candleWidth / 2;
+                
+                let yOpen = canvas.height - padding - ((c.open - minP) / range) * (canvas.height - padding * 2);
+                let yClose = canvas.height - padding - ((c.close - minP) / range) * (canvas.height - padding * 2);
+                let yHigh = canvas.height - padding - ((c.high - minP) / range) * (canvas.height - padding * 2);
+                let yLow = canvas.height - padding - ((c.low - minP) / range) * (canvas.height - padding * 2);
+
+                let isGreen = c.close >= c.open;
+                let color = isGreen ? '#00e676' : '#ff1744';
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, yHigh);
+                ctx.lineTo(x, yLow);
+                ctx.stroke();
+
+                ctx.fillStyle = color;
+                let bodyY = Math.min(yOpen, yClose);
+                let bodyH = Math.max(Math.abs(yClose - yOpen), 2);
+                ctx.fillRect(x - candleWidth * 0.35, bodyY, candleWidth * 0.7, bodyH);
+            });
+        }
+
+        function startTradingBattle() {
+            if (isBattleActive) return;
+
+            userPoints = 1000;
+            aiPoints = 1000;
+            document.getElementById('user-score').innerText = userPoints;
+            document.getElementById('ai-score').innerText = aiPoints;
+            
+            isBattleActive = true;
+            document.getElementById('start-battle-btn').disabled = true;
+            document.getElementById('battle-status').innerText = "Battle Live! Make your prediction!";
+
+            let totalSeconds = 180;
+            
+            battleTimerInterval = setInterval(() => {
+                totalSeconds--;
+                let mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+                let secs = (totalSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('battle-time-display').innerText = `Time Remaining: ${mins}:${secs}`;
+
+                if (totalSeconds <= 0) {
+                    stopBattle();
+                    declareBattleWinner();
+                }
+            }, 1000);
+
+            secondsRemaining = CANDLE_DURATION;
+            const timerBadge = document.getElementById('candle-timer');
+            timerBadge.style.display = 'block';
+            timerBadge.innerText = `00:0${secondsRemaining}`;
+
+            candleCycleInterval = setInterval(() => {
+                secondsRemaining--;
+
+                if (secondsRemaining > 0) {
+                    timerBadge.innerText = `00:0${secondsRemaining}`;
+                } else {
+                    timerBadge.innerText = `00:00`;
+                    updateCandleCycle();
+                    secondsRemaining = CANDLE_DURATION;
+                }
+            }, 1000);
+        }
+
+        function updateCandleCycle() {
+            let lastCandle = candles[candles.length - 1];
+            let open = lastCandle.close;
+            let close = open + (Math.random() - 0.49) * 8;
+            let high = Math.max(open, close) + Math.random() * 4;
+            let low = Math.min(open, close) - Math.random() * 4;
+            
+            let isGreen = close >= open;
+
+            if (userCurrentPrediction) {
+                if ((userCurrentPrediction === 'UP' && isGreen) || (userCurrentPrediction === 'DOWN' && !isGreen)) {
+                    userPoints += 150;
+                    document.getElementById('battle-status').innerText = "Result: WIN! 🎉 (+150 Pts)";
+                } else {
+                    userPoints = Math.max(0, userPoints - 100);
+                    document.getElementById('battle-status').innerText = "Result: LOSS! ❌ (-100 Pts)";
+                }
+                document.getElementById('user-score').innerText = userPoints;
+                userCurrentPrediction = null;
+            }
+
+            aiCurrentPrediction = Math.random() > 0.48 ? 'UP' : 'DOWN';
+            if ((aiCurrentPrediction === 'UP' && isGreen) || (aiCurrentPrediction === 'DOWN' && !isGreen)) {
+                aiPoints += 150;
+            } else {
+                aiPoints = Math.max(0, aiPoints - 100);
+            }
+            document.getElementById('ai-score').innerText = aiPoints;
+
+            candles.push({ open, high, low, close });
+            if (candles.length > 12) candles.shift();
+            drawCandlesticks();
+
+            document.getElementById('btn-user-call').disabled = false;
+            document.getElementById('btn-user-put').disabled = false;
+        }
+
+        function makePrediction(direction) {
+            if (!isBattleActive) {
+                alert("Please click 'Start 3-Min Battle' first!");
+                return;
+            }
+            
+            userCurrentPrediction = direction;
+            document.getElementById('battle-status').innerText = `Your Prediction: ${direction}! Waiting for candle to close...`;
+            
+            document.getElementById('btn-user-call').disabled = true;
+            document.getElementById('btn-user-put').disabled = true;
+        }
+
+        function stopBattle() {
+            isBattleActive = false;
+            clearInterval(battleTimerInterval);
+            clearInterval(candleCycleInterval);
+            document.getElementById('start-battle-btn').disabled = false;
+            document.getElementById('candle-timer').style.display = 'none';
+        }
+
+        function declareBattleWinner() {
+            if (userPoints > aiPoints) {
+                alert(`🎉 CONGRATULATIONS! YOU WON THE BATTLE!\nYour Score: ${userPoints} | AI Score: ${aiPoints}`);
+            } else if (aiPoints > userPoints) {
+                alert(`💀 GAME OVER! STB AI Bot Won!\nAI Score: ${aiPoints} | Your Score: ${userPoints}`);
+            } else {
+                alert(`🤝 IT'S A DRAW!\nBoth Scores: ${userPoints}`);
+            }
+            document.getElementById('battle-status').innerText = "Battle finished! Press Start to play again.";
+        }
+
+        /* TRADING TRAINING ARCADE SCRIPT */
+        let quizScore = 0;
+        let currentQuizPattern = null;
+        let backtestCandles = [];
+
+        const patterns = [
+            { name: "Bullish Hammer", type: "hammer" },
+            { name: "Shooting Star", type: "star" },
+            { name: "Bullish Engulfing", type: "engulfing" },
+            { name: "Doji Candle", type: "doji" }
+        ];
+
+        function openArcadeModal() {
+            document.getElementById('arcade-modal').style.display = 'flex';
+            loadNewQuiz();
+            initBacktest();
+        }
+
+        function closeArcadeModal() {
+            document.getElementById('arcade-modal').style.display = 'none';
+        }
+
+        function switchArcadeTab(tab) {
+            document.getElementById('tab-quiz').classList.remove('active');
+            document.getElementById('tab-backtest').classList.remove('active');
+            
+            if(tab === 'quiz') {
+                document.getElementById('tab-quiz').classList.add('active');
+                document.getElementById('arcade-quiz-section').style.display = 'block';
+                document.getElementById('arcade-backtest-section').style.display = 'none';
+                loadNewQuiz();
+            } else {
+                document.getElementById('tab-backtest').classList.add('active');
+                document.getElementById('arcade-quiz-section').style.display = 'none';
+                document.getElementById('arcade-backtest-section').style.display = 'block';
+                initBacktest();
+            }
+        }
+
+        function loadNewQuiz() {
+            currentQuizPattern = patterns[Math.floor(Math.random() * patterns.length)];
+            drawQuizPattern(currentQuizPattern.type);
+
+            const optContainer = document.getElementById('quiz-options');
+            optContainer.innerHTML = '';
+
+            patterns.forEach(p => {
+                let btn = document.createElement('button');
+                btn.className = 'btn-quiz-opt';
+                btn.innerText = p.name;
+                btn.onclick = () => checkQuizAnswer(p.name);
+                optContainer.appendChild(btn);
+            });
+        }
+
+        function drawQuizPattern(type) {
+            const canvas = document.getElementById('quizCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            ctx.lineWidth = 2;
+
+            if (type === "hammer") {
+                ctx.strokeStyle = '#00e676';
+                ctx.fillStyle = '#00e676';
+                ctx.beginPath(); ctx.moveTo(cx, cy - 40); ctx.lineTo(cx, cy + 50); ctx.stroke();
+                ctx.fillRect(cx - 15, cy - 40, 30, 25);
+            } else if (type === "star") {
+                ctx.strokeStyle = '#ff1744';
+                ctx.fillStyle = '#ff1744';
+                ctx.beginPath(); ctx.moveTo(cx, cy - 50); ctx.lineTo(cx, cy + 40); ctx.stroke();
+                ctx.fillRect(cx - 15, cy + 15, 30, 25);
+            } else if (type === "doji") {
+                ctx.strokeStyle = '#ffd700';
+                ctx.beginPath(); ctx.moveTo(cx, cy - 45); ctx.lineTo(cx, cy + 45); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx - 20, cy); ctx.lineTo(cx + 20, cy); ctx.stroke();
+            } else if (type === "engulfing") {
+                ctx.strokeStyle = '#ff1744'; ctx.fillStyle = '#ff1744';
+                ctx.beginPath(); ctx.moveTo(cx - 25, cy - 10); ctx.lineTo(cx - 25, cy + 25); ctx.stroke();
+                ctx.fillRect(cx - 32, cy, 14, 15);
+
+                ctx.strokeStyle = '#00e676'; ctx.fillStyle = '#00e676';
+                ctx.beginPath(); ctx.moveTo(cx + 15, cy - 35); ctx.lineTo(cx + 15, cy + 35); ctx.stroke();
+                ctx.fillRect(cx + 5, cy - 25, 20, 50);
+            }
+        }
+
+        function checkQuizAnswer(selectedName) {
+            if (selectedName === currentQuizPattern.name) {
+                quizScore += 10;
+                alert("🎉 Correct Answer! (+10 Pts)");
+            } else {
+                alert(`❌ Wrong! Correct answer was: ${currentQuizPattern.name}`);
+            }
+            document.getElementById('quiz-score').innerText = quizScore;
+            loadNewQuiz();
+        }
+
+        function initBacktest() {
+            backtestCandles = [];
+            let price = 100;
+            for (let i = 0; i < 8; i++) {
+                let open = price;
+                let close = open + (Math.random() - 0.49) * 6;
+                let high = Math.max(open, close) + Math.random() * 3;
+                let low = Math.min(open, close) - Math.random() * 3;
+                backtestCandles.push({ open, high, low, close });
+                price = close;
+            }
+            drawBacktestCandles();
+            document.getElementById('backtest-result').innerText = "Analyze pattern & select UP or DOWN for next candle!";
+        }
+
+        function drawBacktestCandles() {
+            const canvas = document.getElementById('arcadeCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let minP = Math.min(...backtestCandles.map(c => c.low));
+            let maxP = Math.max(...backtestCandles.map(c => c.high));
+            let range = (maxP - minP) || 1;
+
+            const padding = 20;
+            const candleWidth = (canvas.width - padding * 2) / 10;
+
+            backtestCandles.forEach((c, index) => {
+                let x = padding + index * candleWidth + candleWidth / 2;
+                let yOpen = canvas.height - padding - ((c.open - minP) / range) * (canvas.height - padding * 2);
+                let yClose = canvas.height - padding - ((c.close - minP) / range) * (canvas.height - padding * 2);
+                let yHigh = canvas.height - padding - ((c.high - minP) / range) * (canvas.height - padding * 2);
+                let yLow = canvas.height - padding - ((c.low - minP) / range) * (canvas.height - padding * 2);
+
+                let color = c.close >= c.open ? '#00e676' : '#ff1744';
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(x, yHigh); ctx.lineTo(x, yLow); ctx.stroke();
+
+                ctx.fillStyle = color;
+                let bodyY = Math.min(yOpen, yClose);
+                let bodyH = Math.max(Math.abs(yClose - yOpen), 2);
+                ctx.fillRect(x - candleWidth * 0.35, bodyY, candleWidth * 0.7, bodyH);
+            });
+        }
+
+        function guessBacktest(direction) {
+            let last = backtestCandles[backtestCandles.length - 1];
+            let open = last.close;
+            let close = open + (Math.random() - 0.49) * 8;
+            let high = Math.max(open, close) + Math.random() * 3;
+            let low = Math.min(open, close) - Math.random() * 3;
+            
+            let isGreen = close >= open;
+            let actualDir = isGreen ? 'UP' : 'DOWN';
+
+            backtestCandles.push({ open, high, low, close });
+            drawBacktestCandles();
+
+            if (direction === actualDir) {
+                document.getElementById('backtest-result').innerText = `✅ EXCELLENT! Next candle went ${actualDir}!`;
+            } else {
+                document.getElementById('backtest-result').innerText = `❌ MISSED! Next candle actually went ${actualDir}!`;
+            }
+
+            setTimeout(initBacktest, 2500);
+        }
+
+        /* STB Live Signal Modal Control */
         function openLiveModal() {
             document.getElementById('live-modal').style.display = 'flex';
         }
@@ -640,7 +1628,7 @@
             alert('Live Signal Copied Successfully!');
         }
 
-        /* --- Chart Modal Control --- */
+        /* Chart Modal Control */
         function openChartModal() {
             document.getElementById('chart-modal').style.display = 'flex';
         }
@@ -666,159 +1654,6 @@
             }
         }
 
-        /* --- Robust Chart OCR Helpers --- */
-
-        function normalizeOCRText(text) {
-            return (text || '')
-                .toUpperCase()
-                .replace(/[|]/g, 'I')
-                .replace(/[—–−]/g, '-')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        function detectQuotexPair(text) {
-            const t = normalizeOCRText(text);
-            const compactText = t
-                .replace(/[\/|I:]/g, ' ')
-                .replace(/[^A-Z0-9()\s-]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            for (const rawPair of otcPairList) {
-                const base = rawPair.replace(/-OTC$/i, '').toUpperCase();
-                const a = base.slice(0, 3);
-                const b = base.slice(3, 6);
-                const forms = [
-                    new RegExp(`\\b${a}\\s*[/|I-]\\s*${b}\\b`, 'i'),
-                    new RegExp(`\\b${a}\\s+${b}\\b`, 'i'),
-                    new RegExp(`\\b${a}${b}\\b`, 'i')
-                ];
-                if (forms.some(re => re.test(t) || re.test(compactText))) {
-                    return `${a}/${b} (OTC)`;
-                }
-            }
-            return null;
-        }
-
-        function scorePairInText(text) {
-            const t = normalizeOCRText(text);
-            let best = null;
-            let bestScore = 0;
-
-            for (const rawPair of otcPairList) {
-                const base = rawPair.replace(/-OTC$/i, '').toUpperCase();
-                const a = base.slice(0, 3);
-                const b = base.slice(3, 6);
-                let score = 0;
-                if (new RegExp(`\\b${a}\\s*[/|I-]\\s*${b}\\b`, 'i').test(t)) score = 100;
-                else if (new RegExp(`\\b${a}\\s+${b}\\b`, 'i').test(t)) score = 95;
-                else if (new RegExp(`\\b${a}${b}\\b`, 'i').test(t)) score = 90;
-                if (/\bOTC\b/i.test(t) && score) score += 10;
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = `${a}/${b} (OTC)`;
-                }
-            }
-            return { pair: best, score: bestScore };
-        }
-
-        function makeOCRCanvases(dataUrl) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    const maxWidth = 2400;
-                    const scale = Math.min(1.8, maxWidth / img.naturalWidth);
-                    const w = Math.max(1, Math.round(img.naturalWidth * scale));
-                    const h = Math.max(1, Math.round(img.naturalHeight * scale));
-
-                    const base = document.createElement('canvas');
-                    base.width = w;
-                    base.height = h;
-                    const ctx = base.getContext('2d', { willReadFrequently: true });
-                    ctx.drawImage(img, 0, 0, w, h);
-
-                    const crops = [
-                        [Math.round(w * 0.875), Math.round(h * 0.055), Math.round(w * 0.125), Math.round(h * 0.075)],
-                        [Math.round(w * 0.85), Math.round(h * 0.035), Math.round(w * 0.15), Math.round(h * 0.16)],
-                        [Math.round(w * 0.05), Math.round(h * 0.045), Math.round(w * 0.80), Math.round(h * 0.11)],
-                        [Math.round(w * 0.55), 0, Math.round(w * 0.45), Math.round(h * 0.22)],
-                        [0, 0, w, Math.round(h * 0.40)]
-                    ];
-
-                    const ordered = [];
-                    const priorityCrops = [];
-                    for (const [x, y, cw, ch] of crops) {
-                        const c = document.createElement('canvas');
-                        c.width = Math.max(1, cw);
-                        c.height = Math.max(1, ch);
-                        c.getContext('2d').drawImage(base, x, y, cw, ch, 0, 0, cw, ch);
-                        priorityCrops.push(c);
-                        ordered.push(c);
-                    }
-
-                    ordered.push(base);
-
-                    const source = priorityCrops[0];
-                    for (const mode of ['normal', 'contrast']) {
-                        const c = document.createElement('canvas');
-                        c.width = source.width * 6;
-                        c.height = source.height * 6;
-                        const cctx = c.getContext('2d', { willReadFrequently: true });
-                        cctx.imageSmoothingEnabled = true;
-                        cctx.drawImage(source, 0, 0, c.width, c.height);
-                        if (mode === 'contrast') {
-                            const imgData = cctx.getImageData(0, 0, c.width, c.height);
-                            for (let i = 0; i < imgData.data.length; i += 4) {
-                                const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
-                                let v = 0.299*r + 0.587*g + 0.114*b;
-                                v = Math.max(0, Math.min(255, (v - 128) * 2.2 + 128));
-                                imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = v;
-                            }
-                            cctx.putImageData(imgData, 0, 0);
-                        }
-                        ordered.unshift(c);
-                    }
-
-                    resolve(ordered);
-                };
-                img.onerror = reject;
-                img.src = dataUrl;
-            });
-        }
-
-        async function ocrForPair(canvases) {
-            const worker = await Tesseract.createWorker('eng');
-            let allText = '';
-            let best = null;
-            try {
-                await worker.setParameters({
-                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/()|- ' 
-                });
-
-                for (let i = 0; i < canvases.length; i++) {
-                    await worker.setParameters({
-                        tessedit_pageseg_mode: i < 2 ? Tesseract.PSM.SINGLE_LINE : Tesseract.PSM.SPARSE_TEXT
-                    });
-                    const ret = await worker.recognize(canvases[i]);
-                    const text = ret?.data?.text || '';
-                    allText += '\n' + text;
-                    const result = scorePairInText(text);
-                    if (result.pair) {
-                        const priorityBonus = i < 2 ? 20 : (i < 4 ? 10 : 0);
-                        const totalScore = result.score + priorityBonus;
-                        if (!best || totalScore > best.score) best = { pair: result.pair, score: totalScore };
-                    }
-                    if (i < 2 && result.score >= 100) {
-                        return { pair: result.pair, text: allText };
-                    }
-                }
-                return { pair: best ? best.pair : null, text: allText };
-            } finally {
-                await worker.terminate();
-            }
-        }
-
         async function analyzeChart() {
             const scanner = document.getElementById('scanner');
             const btn = document.getElementById('analyze-btn');
@@ -832,16 +1667,18 @@
             errorBox.style.display = 'none';
 
             try {
-                if (!uploadedImageSrc) {
-                    throw new Error('No image selected');
-                }
+                const worker = await Tesseract.createWorker('eng');
+                const ret = await worker.recognize(uploadedImageSrc);
+                await worker.terminate();
 
-                const canvases = await makeOCRCanvases(uploadedImageSrc);
-                const { pair: detectedPair } = await ocrForPair(canvases);
+                const extractedText = ret.data.text.toUpperCase();
+                const pairRegex = /([A-Z]{3}\/[A-Z]{3}(\s*\(OTC\))?|CRYPTO\s*IDX)/i;
+                const match = extractedText.match(pairRegex);
 
                 scanner.style.display = 'none';
 
-                if (detectedPair) {
+                if (match) {
+                    const detectedPair = match[0].replace(/\s+/g, ' ');
                     const randomTime = times[Math.floor(Math.random() * times.length)];
                     const isCall = Math.random() > 0.5;
 
@@ -865,14 +1702,14 @@
                 startCooldown(btn, "Analyze Chart Now", 45);
 
             } catch (err) {
-                console.error('Chart OCR error:', err);
+                console.error(err);
                 scanner.style.display = 'none';
                 errorBox.style.display = 'block';
                 startCooldown(btn, "Analyze Chart Now", 45);
             }
         }
 
-        /* --- Future Signal Modal Script --- */
+        /* Future Signal VIP Modal Script */
         function openFutureModal() {
             document.getElementById('future-modal').style.display = 'flex';
         }
@@ -931,6 +1768,66 @@
                 alert('All Signals Copied Successfully!');
             }
         }
+
+        /* LIVE FUTURE SIGNAL Modal Script */
+        function openLiveFutureModal() {
+            document.getElementById('live-future-modal').style.display = 'flex';
+        }
+
+        function closeLiveFutureModal() {
+            document.getElementById('live-future-modal').style.display = 'none';
+        }
+
+        function generateLiveFutureSignals() {
+            const countInput = document.getElementById('live-signal-count').value;
+            const count = parseInt(countInput);
+            const genBtn = document.getElementById('gen-live-future-btn');
+
+            if (!count || count < 1 || count > 60) {
+                alert("Please enter a number between 1 and 60!");
+                return;
+            }
+
+            const listBox = document.getElementById('live-signal-list-box');
+            const copyBtn = document.getElementById('live-copy-btn');
+            listBox.innerHTML = '';
+
+            let currentTime = new Date();
+            let generatedSignals = [];
+
+            for (let i = 0; i < count; i++) {
+                currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 3) + 2);
+                
+                let hours = currentTime.getHours().toString().padStart(2, '0');
+                let minutes = currentTime.getMinutes().toString().padStart(2, '0');
+                
+                let randomPair = realLivePairList[Math.floor(Math.random() * realLivePairList.length)];
+                let direction = Math.random() > 0.5 ? 'CALL' : 'PUT';
+
+                let signalStr = `${hours}:${minutes} - ${randomPair} - ${direction}`;
+                generatedSignals.push(signalStr);
+
+                let line = document.createElement('div');
+                line.style.marginBottom = '5px';
+                line.innerText = signalStr;
+                listBox.appendChild(line);
+            }
+
+            listBox.style.display = 'block';
+            copyBtn.style.display = 'block';
+
+            startCooldown(genBtn, "Generate", 45);
+        }
+
+        function copyAllLiveFutureSignals() {
+            const listBox = document.getElementById('live-signal-list-box');
+            const textToCopy = listBox.innerText;
+
+            if (textToCopy) {
+                navigator.clipboard.writeText(textToCopy);
+                alert('All Live Signals Copied Successfully!');
+            }
+        }
     </script>
 </body>
-    </html>
+</html>
